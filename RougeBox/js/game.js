@@ -10,7 +10,8 @@ const CONFIG = {
     ATTACK_RANGE: 150,
     ATTACK_COOLDOWN: 400,
     ENEMY_ATTACK_COOLDOWN: 1000,
-    AUTO_ATTACK_RANGE: 200
+    AUTO_ATTACK_RANGE: 200,
+    MAX_ENEMIES: 35
 };
 
 // Tile types
@@ -35,12 +36,7 @@ const ENTITY_TYPES = {
     LOOT: 'loot',
     WRAITH: 'wraith',
     ARCHER: 'archer',
-    NECROMANCER: 'necromancer',
-    SLIME: 'slime',
-    VAMPIRE: 'vampire',
-    GOLEM: 'golem',
-    GHOST: 'ghost',
-    MIMIC: 'mimic'
+    NECROMANCER: 'necromancer'
 };
 
 // Equipment types
@@ -171,33 +167,12 @@ const BOSS_TYPES = {
         healthMult: 0.9,
         damageMult: 1.2
     },
-    NECROMANCER_LORD: {
-        name: 'Necromancer Lord',
+    NECROMANCER: {
+        name: 'Necromancer',
         color: '#44ff88',
         ability: 'raise_dead',
         healthMult: 0.8,
         damageMult: 1.0
-    },
-    DRAGON: {
-        name: 'Ancient Dragon',
-        color: '#ff0000',
-        ability: 'dragon_breath',
-        healthMult: 1.5,
-        damageMult: 1.3
-    },
-    VOID_TITAN: {
-        name: 'Void Titan',
-        color: '#000088',
-        ability: 'gravity_well',
-        healthMult: 1.8,
-        damageMult: 1.1
-    },
-    LICH_KING: {
-        name: 'Lich King',
-        color: '#00ffaa',
-        ability: 'death_aura',
-        healthMult: 1.3,
-        damageMult: 1.4
     }
 };
 
@@ -327,6 +302,8 @@ class Game {
         this.isPaused = false;
         this.projectiles = [];
         this.enemyProjectiles = [];
+        this.projectilePool = [];
+        this.enemyProjectilePool = [];
         this.exploredTiles = [];
         this.particles = [];
         this.damageNumbers = [];
@@ -677,19 +654,10 @@ class Game {
         // Generate rooms
         this.rooms = [];
         const numRooms = 15 + Math.floor(Math.random() * 8);
-        const baseMinSize = 8;
-        const baseMaxSize = 18;
-        const sizeScale = 1 + Math.min(this.currentFloor - 1, 10) * 0.12;
-        const minWidth = Math.floor(baseMinSize * sizeScale);
-        const maxWidth = Math.floor(baseMaxSize * sizeScale);
-        const minHeight = Math.floor(baseMinSize * sizeScale);
-        const maxHeight = Math.floor(baseMaxSize * sizeScale);
-        const maxAllowedWidth = CONFIG.DUNGEON_WIDTH - 4;
-        const maxAllowedHeight = CONFIG.DUNGEON_HEIGHT - 4;
         
         for (let i = 0; i < numRooms; i++) {
-            const width = Math.min(minWidth + Math.floor(Math.random() * (maxWidth - minWidth + 1)), maxAllowedWidth);
-            const height = Math.min(minHeight + Math.floor(Math.random() * (maxHeight - minHeight + 1)), maxAllowedHeight);
+            const width = 8 + Math.floor(Math.random() * 10);
+            const height = 8 + Math.floor(Math.random() * 10);
             const x = Math.floor(Math.random() * (CONFIG.DUNGEON_WIDTH - width - 2)) + 1;
             const y = Math.floor(Math.random() * (CONFIG.DUNGEON_HEIGHT - height - 2)) + 1;
             
@@ -925,12 +893,7 @@ spawnEnemy(x, y) {
         { type: ENTITY_TYPES.DEMON, health: 70, damage: 15, xp: 50, speed: CONFIG.ENEMY_SPEED * 0.7, color: '#ff0066' },
         { type: ENTITY_TYPES.WRAITH, health: 35, damage: 14, xp: 30, speed: CONFIG.ENEMY_SPEED * 1.2, color: '#8844ff' },
         { type: ENTITY_TYPES.ARCHER, health: 25, damage: 12, xp: 28, speed: CONFIG.ENEMY_SPEED * 0.6, color: '#44ff44', ranged: true },
-        { type: ENTITY_TYPES.NECROMANCER, health: 45, damage: 16, xp: 40, speed: CONFIG.ENEMY_SPEED * 0.5, color: '#44ff88', ranged: true, summon: true },
-        { type: ENTITY_TYPES.SLIME, health: 20, damage: 6, xp: 15, speed: CONFIG.ENEMY_SPEED * 0.6, color: '#00ff88', split: true },
-        { type: ENTITY_TYPES.VAMPIRE, health: 60, damage: 18, xp: 45, speed: CONFIG.ENEMY_SPEED * 1.1, color: '#aa0000', lifesteal: true },
-        { type: ENTITY_TYPES.GOLEM, health: 100, damage: 20, xp: 55, speed: CONFIG.ENEMY_SPEED * 0.4, color: '#888888', tank: true },
-        { type: ENTITY_TYPES.GHOST, health: 30, damage: 12, xp: 35, speed: CONFIG.ENEMY_SPEED * 1.3, color: '#aaaaff', phasing: true },
-        { type: ENTITY_TYPES.MIMIC, health: 80, damage: 25, xp: 60, speed: CONFIG.ENEMY_SPEED * 0.5, color: '#8b4513', ambush: true }
+        { type: ENTITY_TYPES.NECROMANCER, health: 45, damage: 16, xp: 40, speed: CONFIG.ENEMY_SPEED * 0.5, color: '#44ff88', ranged: true, summon: true }
     ];
     
     // Scale difficulty with floor
@@ -938,21 +901,14 @@ spawnEnemy(x, y) {
     
     // Higher chance for stronger enemies on deeper floors
     let enemyType;
-    if (this.currentFloor > 15) {
-        // All enemies available on very deep floors
+    if (this.currentFloor > 7) {
         enemyType = types[Math.floor(Math.random() * types.length)];
-    } else if (this.currentFloor > 10) {
-        // More variety on deeper floors
-        enemyType = types[Math.floor(Math.random() * Math.min(10, types.length))];
-    } else if (this.currentFloor > 7) {
-        enemyType = types[Math.floor(Math.random() * 8)];
     } else if (this.currentFloor > 5) {
-        enemyType = types[Math.floor(Math.random() * 6)];
+        enemyType = types[Math.floor(Math.random() * 5)];
     } else if (this.currentFloor > 3) {
         enemyType = types[Math.floor(Math.random() * 4)];
     } else {
-        // Early floors: only basic enemies
-        enemyType = types[Math.floor(Math.random() * 3)];
+        enemyType = types[Math.floor(Math.random() * 2)];
     }
     
     this.enemies.push({
@@ -974,14 +930,7 @@ spawnEnemy(x, y) {
         ranged: enemyType.ranged || false,
         canSummon: enemyType.summon || false,
         summonCooldown: 0,
-        statusEffects: [],
-        // New enemy special abilities
-        canSplit: enemyType.split || false,
-        hasLifesteal: enemyType.lifesteal || false,
-        isTank: enemyType.tank || false,
-        canPhase: enemyType.phasing || false,
-        isAmbush: enemyType.ambush || false,
-        revealed: !enemyType.ambush // Mimics start hidden
+        statusEffects: []
     });
 }
 
@@ -1172,40 +1121,6 @@ playerAttack(targetEnemy = null) {
                 
                 this.addMessage(`+${gold} gold`, 'gold');
                 
-                // Slime splitting behavior
-                if (targetEnemy.canSplit && targetEnemy.maxHealth > 15) {
-                    this.addMessage('The slime splits!', 'info');
-                    // Spawn 2 smaller slimes
-                    for (let i = 0; i < 2; i++) {
-                        const angle = (Math.PI * 2 * i) / 2;
-                        const splitX = targetEnemy.x + Math.cos(angle) * 40;
-                        const splitY = targetEnemy.y + Math.sin(angle) * 40;
-                        this.enemies.push({
-                            x: splitX,
-                            y: splitY,
-                            width: 18,
-                            height: 18,
-                            type: ENTITY_TYPES.SLIME,
-                            health: Math.floor(targetEnemy.maxHealth / 3),
-                            maxHealth: Math.floor(targetEnemy.maxHealth / 3),
-                            damage: Math.floor(targetEnemy.damage * 0.7),
-                            xp: Math.floor(targetEnemy.xp * 0.4),
-                            speed: targetEnemy.speed * 1.2,
-                            color: targetEnemy.color,
-                            attackCooldown: 500,
-                            aiState: 'chase',
-                            targetX: splitX,
-                            targetY: splitY,
-                            ranged: false,
-                            canSummon: false,
-                            summonCooldown: 0,
-                            statusEffects: [],
-                            canSplit: false, // Small slimes don't split
-                            revealed: true
-                        });
-                    }
-                }
-                
                 // Drop loot
                 this.dropLoot(targetEnemy.x, targetEnemy.y, targetEnemy.isBoss);
                 
@@ -1235,28 +1150,28 @@ playerAttack(targetEnemy = null) {
 }
 
 createProjectile(startX, startY, endX, endY) {
-    this.projectiles.push({
-        x: startX + this.player.width / 2,
-        y: startY + this.player.height / 2,
-        targetX: endX,
-        targetY: endY,
-        speed: 800,
-        life: 1.0
-    });
+    const p = this.projectilePool.length ? this.projectilePool.pop() : {};
+    p.x = startX + this.player.width / 2;
+    p.y = startY + this.player.height / 2;
+    p.targetX = endX;
+    p.targetY = endY;
+    p.speed = 800;
+    p.life = 1.0;
+    this.projectiles.push(p);
 }
 
 createEnemyProjectile(startX, startY, endX, endY, damage, enemyType) {
-    this.enemyProjectiles.push({
-        x: startX + 12,
-        y: startY + 12,
-        targetX: endX + this.player.width / 2,
-        targetY: endY + this.player.height / 2,
-        speed: 300,
-        life: 1.0,
-        damage: damage,
-        enemyType: enemyType,
-        hit: false
-    });
+    const p = this.enemyProjectilePool.length ? this.enemyProjectilePool.pop() : {};
+    p.x = startX + 12;
+    p.y = startY + 12;
+    p.targetX = endX + this.player.width / 2;
+    p.targetY = endY + this.player.height / 2;
+    p.speed = 300;
+    p.life = 1.0;
+    p.damage = damage;
+    p.enemyType = enemyType;
+    p.hit = false;
+    this.enemyProjectiles.push(p);
 }
 
 useDash() {
@@ -1614,14 +1529,19 @@ update(deltaTime) {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < 10 || proj.life <= 0) {
+            const removed = this.projectiles[i];
             this.projectiles.splice(i, 1);
+            this.projectilePool.push(removed);
         } else {
             const stepX = (dx / distance) * proj.speed * dt;
             const stepY = (dy / distance) * proj.speed * dt;
             const nextX = proj.x + stepX;
             const nextY = proj.y + stepY;
             if (this.isWallAt(nextX, nextY)) {
+                const removed = this.projectiles[i];
                 this.projectiles.splice(i, 1);
+                this.projectilePool.push(removed);
+                
             } else {
                 proj.x = nextX;
                 proj.y = nextY;
@@ -1638,14 +1558,18 @@ update(deltaTime) {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < 10 || proj.life <= 0) {
+            const removed = this.enemyProjectiles[i];
             this.enemyProjectiles.splice(i, 1);
+            this.enemyProjectilePool.push(removed);
         } else {
             const stepX = (dx / distance) * proj.speed * dt;
             const stepY = (dy / distance) * proj.speed * dt;
             const nextX = proj.x + stepX;
             const nextY = proj.y + stepY;
             if (this.isWallAt(nextX, nextY)) {
+                const removed = this.enemyProjectiles[i];
                 this.enemyProjectiles.splice(i, 1);
+                this.enemyProjectilePool.push(removed);
                 continue;
             }
             proj.x = nextX;
@@ -1686,7 +1610,7 @@ update(deltaTime) {
                     }
                     
                     // Screen shake when hit
-                    this.screenShake = 0.5;
+                    this.screenShake = Math.min(1, 0.15 + damage / 60);
                     
                     // Damage number
                     this.damageNumbers.push(new DamageNumber(
@@ -1771,19 +1695,6 @@ updateEnemy(enemy, dt) {
     const isStunned = enemy.statusEffects.some(e => e.type === 'STUN');
     if (isStunned) return;
     
-    // Mimic/Ambush enemies reveal when player gets close
-    if (enemy.isAmbush && !enemy.revealed) {
-        const dx = this.player.x - enemy.x;
-        const dy = this.player.y - enemy.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < 150) {
-            enemy.revealed = true;
-            this.addMessage(`A ${enemy.type} ambushes you!`, 'damage');
-        } else {
-            return; // Don't update hidden mimics
-        }
-    }
-    
     // Get speed multiplier from status effects
     const speedMult = this.getStatusEffectMultiplier(enemy, 'speedMultiplier');
     
@@ -1811,18 +1722,6 @@ updateEnemy(enemy, dt) {
             enemy.summonCooldown = 10000; // 10 second cooldown
             this.addMessage('Necromancer summoned reinforcements!', 'damage');
         }
-    }
-    
-    // Vampire lifesteal on attack
-    if (enemy.hasLifesteal && distance < CONFIG.ATTACK_RANGE && enemy.attackCooldown <= 0) {
-        const healAmount = Math.floor(enemy.damage * 0.3);
-        enemy.health = Math.min(enemy.maxHealth, enemy.health + healAmount);
-    }
-    
-    // Ghost phasing - can move through walls occasionally
-    if (enemy.canPhase && Math.random() < 0.02) {
-        enemy.phasing = true;
-        setTimeout(() => { if (enemy) enemy.phasing = false; }, 1000);
     }
     
     // AI behavior
@@ -1950,72 +1849,30 @@ updateBossAbility(boss, dt, distanceToPlayer) {
                 boss.specialAttackCooldown = 12000;
             }
             break;
-            
-        case 'dragon_breath':
-            if (boss.specialAttackCooldown <= 0 && distanceToPlayer < 400) {
-                // Breathe fire in a cone towards player
-                const angleToPlayer = Math.atan2(this.player.y - boss.y, this.player.x - boss.x);
-                for (let i = -2; i <= 2; i++) {
-                    const angle = angleToPlayer + (i * 0.3);
-                    const targetX = boss.x + Math.cos(angle) * 400;
-                    const targetY = boss.y + Math.sin(angle) * 400;
-                    this.createEnemyProjectile(boss.x, boss.y, targetX, targetY, boss.damage * 0.8, 'Dragon Breath');
-                }
-                this.addMessage(`${boss.bossType.name} breathes fire!`, 'damage');
-                boss.specialAttackCooldown = 6000;
-            }
-            break;
-            
-        case 'gravity_well':
-            if (boss.specialAttackCooldown <= 0) {
-                // Pull player towards boss
-                const pullStrength = 300;
-                const angle = Math.atan2(boss.y - this.player.y, boss.x - this.player.x);
-                const pullX = this.player.x + Math.cos(angle) * pullStrength * 0.016;
-                const pullY = this.player.y + Math.sin(angle) * pullStrength * 0.016;
-                if (this.canMove(pullX, pullY, this.player.width, this.player.height)) {
-                    this.player.x = pullX;
-                    this.player.y = pullY;
-                }
-                this.applyStatusEffect(this.player, 'SLOW');
-                this.addMessage(`${boss.bossType.name} pulls you in!`, 'damage');
-                boss.specialAttackCooldown = 8000;
-            }
-            break;
-            
-        case 'death_aura':
-            if (distanceToPlayer < 250) {
-                // Constant damage aura
-                if (!boss.auraDamageTimer) boss.auraDamageTimer = 0;
-                boss.auraDamageTimer += dt * 1000;
-                if (boss.auraDamageTimer >= 1000) {
-                    const auraDamage = Math.floor(boss.damage * 0.2);
-                    if (!this.player.buffs.invincibility.active) {
-                        this.player.health -= auraDamage;
-                        this.damageNumbers.push(new DamageNumber(
-                            this.player.x + this.player.width / 2,
-                            this.player.y,
-                            auraDamage,
-                            '#00ff00'
-                        ));
-                    }
-                    boss.auraDamageTimer = 0;
-                }
-            }
-            break;
     }
 }
 
 canMove(x, y, width, height) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+        return false;
+    }
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+
     const left = Math.floor(x / CONFIG.TILE_SIZE);
     const right = Math.floor((x + width) / CONFIG.TILE_SIZE);
     const top = Math.floor(y / CONFIG.TILE_SIZE);
     const bottom = Math.floor((y + height) / CONFIG.TILE_SIZE);
-    
+
+    if (!Number.isFinite(left) || !Number.isFinite(right) || !Number.isFinite(top) || !Number.isFinite(bottom)) {
+        return false;
+    }
+
     if (left < 0 || right >= CONFIG.DUNGEON_WIDTH || top < 0 || bottom >= CONFIG.DUNGEON_HEIGHT) {
         return false;
     }
-    
+
     return this.dungeon[top][left] !== TILES.WALL &&
            this.dungeon[top][right] !== TILES.WALL &&
            this.dungeon[bottom][left] !== TILES.WALL &&
@@ -2340,16 +2197,8 @@ render() {
     
     // Render enemies
     for (const enemy of this.enemies) {
-        // Don't render hidden mimics
-        if (enemy.isAmbush && !enemy.revealed) continue;
-        
         const screenX = enemy.x - this.camera.x;
         const screenY = enemy.y - this.camera.y;
-        
-        // Ghost phasing effect
-        if (enemy.canPhase && enemy.phasing) {
-            this.ctx.globalAlpha = 0.4;
-        }
         
         // Special boss rendering
         if (enemy.isBoss) {
@@ -2396,9 +2245,6 @@ render() {
         this.ctx.fillRect(screenX, screenY - 8, enemy.width, 4);
         this.ctx.fillStyle = '#00ff00';
         this.ctx.fillRect(screenX, screenY - 8, enemy.width * healthPercent, 4);
-        
-        // Reset alpha if was changed
-        this.ctx.globalAlpha = 1;
     }
     
     // Render player
