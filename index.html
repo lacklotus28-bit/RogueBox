@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler - Enhanced Edition</title>
+    <link rel="stylesheet" href="RougeBox/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="left-panel">
+            <div class="hud">
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">HP:</span>
+                        <div class="health-bar">
+                            <div class="health-fill" id="playerHealth"></div>
+                        </div>
+                        <span id="healthText">100/100</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Level:</span>
+                        <span id="playerLevel">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">XP:</span>
+                        <span id="playerXP">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Gold:</span>
+                        <span id="playerGold">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Floor:</span>
+                        <span id="dungeonFloor">1</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="message-log" id="messageLog">
+                <div class="message">Welcome to the dungeon! Find the stairs to descend deeper...</div>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="right-panel">
+            <div class="minimap-container">
+                <h3>Map</h3>
+                <canvas id="minimapCanvas"></canvas>
+            </div>
+            
+            <div class="inventory">
+                <h3>Inventory</h3>
+                <div id="inventorySlots">
+                    <div class="inventory-item">
+                        <span>Health Potions:</span>
+                        <span id="potionCount">3</span>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 15px;">Equipment</h3>
+                <div class="equipment-slots">
+                    <div class="equipment-item">
+                        <span class="equip-label">Weapon:</span>
+                        <span id="weaponName">Basic Sword</span>
+                    </div>
+                    <div class="equipment-item">
+                        <span class="equip-label">Armor:</span>
+                        <span id="armorName">Cloth Armor</span>
+                    </div>
+                    <div class="equipment-item">
+                        <span class="equip-label">Accessory:</span>
+                        <span id="accessoryName">None</span>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 15px;">Abilities</h3>
+                <div class="abilities-display">
+                    <div class="ability-slot">
+                        <span class="ability-key">1</span>
+                        <div class="ability-cooldown" id="dashCooldown"></div>
+                        <span class="ability-name">Dash</span>
+                    </div>
+                    <div class="ability-slot">
+                        <span class="ability-key">2</span>
+                        <div class="ability-cooldown" id="areaCooldown"></div>
+                        <span class="ability-name">Area</span>
+                    </div>
+                    <div class="ability-slot">
+                        <span class="ability-key">3</span>
+                        <div class="ability-cooldown" id="healCooldown"></div>
+                        <span class="ability-name">Heal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls-info">
+        <p>WASD or Arrow Keys to Move | Auto-Attack Enabled | E to Use Potion | 1-Dash 2-Area Attack 3-Heal</p>
+    </div>
+    
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-content">
+            <h1>GAME OVER</h1>
+            <p>You reached floor <span id="finalFloor"></span></p>
+            <p>Total kills: <span id="finalKills"></span></p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+    
+    <div class="level-up-screen" id="levelUpScreen">
+        <div class="level-up-content">
+            <h2>LEVEL UP!</h2>
+            <p>Choose an upgrade:</p>
+            <div class="upgrade-buttons">
+                <button onclick="game.selectUpgrade('health')">
+                    <strong>+20 Max HP</strong>
+                    <span>Increase maximum health</span>
+                </button>
+                <button onclick="game.selectUpgrade('damage')">
+                    <strong>+5 Attack Damage</strong>
+                    <span>Deal more damage</span>
+                </button>
+                <button onclick="game.selectUpgrade('speed')">
+                    <strong>+10% Move Speed</strong>
+                    <span>Move faster</span>
+                </button>
+                <button onclick="game.selectUpgrade('critChance')">
+                    <strong>+5% Crit Chance</strong>
+                    <span>More critical hits</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="RougeBox/js/game.js"></script>
+</body>
+</html>
